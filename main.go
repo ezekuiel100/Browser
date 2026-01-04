@@ -12,36 +12,38 @@ type Url struct {
 }
 
 func main() {
-	data, err := parseUrl("http://exemplo.com/teste")
+	url, err := parseUrl("http://exemplo.com/teste")
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Println(data)
+	fmt.Println(url)
 }
 
-func parseUrl(row string) (Url, error) {
-	var u Url
-	parts := strings.SplitN(row, "://", 2)
+func parseUrl(raw string) (*Url, error) {
+	parts := strings.SplitN(raw, "://", 2)
 	if len(parts) != 2 {
-		return u, fmt.Errorf("URL inválida")
+		return nil, fmt.Errorf("URL inválida")
 	}
 
-	u.scheme = parts[0]
-	if u.scheme != "http" {
-		return u, fmt.Errorf("a URL precisa usar o protocolo HTTP")
+	scheme := parts[0]
+	if scheme != "http" {
+		return nil, fmt.Errorf("a URL precisa usar o protocolo HTTP")
 	}
 
 	res := strings.SplitN(parts[1], "/", 2)
-	u.host = res[0]
+	host := res[0]
 
-	if len(res) == 1 {
-		u.path = "/"
-	} else {
-		u.path = "/" + res[1]
+	path := "/"
+	if len(res) == 2 {
+		path = "/" + res[1]
 	}
 
-	return u, nil
+	return &Url{
+		scheme: scheme,
+		host:   host,
+		path:   path,
+	}, nil
 }
