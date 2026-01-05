@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"strings"
 )
 
@@ -12,14 +13,14 @@ type Url struct {
 }
 
 func main() {
-	url, err := parseUrl("http://exemplo.com/teste")
+	url, err := parseUrl("http://localhost:3000")
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Println(url)
+	request(*url)
 }
 
 func parseUrl(raw string) (*Url, error) {
@@ -46,4 +47,33 @@ func parseUrl(raw string) (*Url, error) {
 		host:   host,
 		path:   path,
 	}, nil
+}
+
+func request(url Url) {
+	conn, err := net.Dial("tcp", url.host)
+
+	if err != nil {
+		panic(err)
+	}
+	defer conn.Close()
+
+	request := fmt.Sprintf(
+		"GET %s HTTP/1.0\r\nHost: %s\r\n\r\n",
+		url.path, url.host,
+	)
+
+	conn.Write([]byte(request))
+
+	buffer := make([]byte, 1024)
+
+	for {
+		n, err := conn.Read(buffer)
+		if n > 0 {
+			fmt.Println(string(buffer[:n]))
+		}
+
+		if err != nil {
+			break
+		}
+	}
 }
