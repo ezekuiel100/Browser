@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"strings"
@@ -64,16 +65,14 @@ func request(url Url) {
 
 	conn.Write([]byte(request))
 
-	buffer := make([]byte, 1024)
+	reader := bufio.NewReader(conn)
 
-	for {
-		n, err := conn.Read(buffer)
-		if n > 0 {
-			fmt.Println(string(buffer[:n]))
-		}
-
-		if err != nil {
-			break
-		}
+	statusLine, err := reader.ReadString('\n')
+	if err != nil {
+		panic(err)
 	}
+
+	parts := strings.SplitN(statusLine, " ", 3)
+	fmt.Println(parts)
+
 }
