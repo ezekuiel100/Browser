@@ -75,4 +75,19 @@ func request(url Url) {
 	parts := strings.SplitN(statusLine, " ", 3)
 	fmt.Println(parts)
 
+	response_headers := make(map[string]string)
+	for {
+		line, _ := reader.ReadString('\n')
+		if line == "\r\n" {
+			break
+		}
+
+		parts := strings.SplitN(line, ":", 2)
+		header := strings.ToLower(parts[0])
+		value := strings.TrimSpace(parts[1])
+
+		response_headers[header] = value
+	}
+
+	fmt.Println(response_headers)
 }
