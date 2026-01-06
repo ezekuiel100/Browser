@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"strings"
 )
@@ -22,7 +23,12 @@ func main() {
 		return
 	}
 
-	request(*url)
+	body, err := request(*url)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(string(body))
 }
 
 func parseUrl(raw string) (*Url, error) {
@@ -51,7 +57,7 @@ func parseUrl(raw string) (*Url, error) {
 	}, nil
 }
 
-func request(url Url) []byte {
+func request(url Url) ([]byte, error) {
 	conn, err := net.Dial("tcp", url.host)
 
 	if err != nil {
@@ -76,7 +82,7 @@ func request(url Url) []byte {
 	parts := strings.SplitN(statusLine, " ", 3)
 	fmt.Println(parts)
 
-	response_headers := make(map[string]string)
+	responseHeaders := make(map[string]string)
 	for {
 		line, _ := reader.ReadString('\n')
 		if line == "\r\n" {
@@ -87,10 +93,18 @@ func request(url Url) []byte {
 		header := strings.ToLower(parts[0])
 		value := strings.TrimSpace(parts[1])
 
-		response_headers[header] = value
+		responseHeaders[header] = value
+	}
+
+	if _, ok := responseHeaders["transfer-encoding"]; ok {
+		return nil, fmt.Errorf("transfer-encoding não suportado")
+	}
+
+	if _, ok := responseHeaders["content-encoding"]; ok {
+		return nil, fmt.Errorf("content-encoding não suportado")
 	}
 
 	body, _ := io.ReadAll(reader)
 
-	return body
+	return body, nil
 }
