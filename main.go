@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"strings"
 )
@@ -50,7 +51,7 @@ func parseUrl(raw string) (*Url, error) {
 	}, nil
 }
 
-func request(url Url) {
+func request(url Url) []byte {
 	conn, err := net.Dial("tcp", url.host)
 
 	if err != nil {
@@ -89,5 +90,7 @@ func request(url Url) {
 		response_headers[header] = value
 	}
 
-	fmt.Println(response_headers)
+	body, _ := io.ReadAll(reader)
+
+	return body
 }
