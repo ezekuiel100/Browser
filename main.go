@@ -7,6 +7,10 @@ import (
 	"log"
 	"net"
 	"strings"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/widget"
 )
 
 type Url struct {
@@ -28,7 +32,35 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(string(body))
+	show(string(body))
+}
+
+func show(body string) {
+	App := app.New()
+	window := App.NewWindow("Browser")
+
+	inTag := false
+	var result []rune
+
+	for _, c := range body {
+		if c == '<' {
+			inTag = true
+			continue
+		} else if c == '>' {
+			inTag = false
+			continue
+		}
+
+		if !inTag {
+			result = append(result, c)
+		}
+	}
+
+	text := widget.NewLabel(string(result))
+
+	window.SetContent(text)
+	window.Resize(fyne.NewSize(800, 600))
+	window.ShowAndRun()
 }
 
 func parseUrl(raw string) (*Url, error) {
