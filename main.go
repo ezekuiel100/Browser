@@ -10,6 +10,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -39,27 +40,35 @@ func show(body string) {
 	App := app.New()
 	window := App.NewWindow("Browser")
 
-	inTag := false
-	var result []rune
+	text := widget.NewLabel("Carregando...")
+	text.Wrapping = fyne.TextWrapWord
 
-	for _, c := range body {
-		if c == '<' {
-			inTag = true
-			continue
-		} else if c == '>' {
-			inTag = false
-			continue
+	window.SetContent(container.NewVScroll(text))
+
+	go func() {
+		var b strings.Builder
+		inTag := false
+
+		for _, c := range body {
+			if c == '<' {
+				inTag = true
+				continue
+			} else if c == '>' {
+				inTag = false
+				continue
+			}
+
+			if !inTag {
+				b.WriteRune(c)
+			}
 		}
 
-		if !inTag {
-			result = append(result, c)
-		}
-	}
+		finalText := strings.Join(strings.Fields(b.String()), " ")
+		text.SetText(finalText)
 
-	text := widget.NewLabel(string(result))
+	}()
 
-	window.SetContent(text)
-	window.Resize(fyne.NewSize(800, 600))
+	window.Resize(fyne.NewSize(1200, 800))
 	window.ShowAndRun()
 }
 
