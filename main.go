@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"log"
@@ -21,7 +22,7 @@ type Url struct {
 }
 
 func main() {
-	url, err := parseUrl("http://localhost:3000")
+	url, err := parseUrl("https://www.google.com")
 
 	if err != nil {
 		fmt.Println(err)
@@ -79,12 +80,18 @@ func parseUrl(raw string) (*Url, error) {
 	}
 
 	scheme := parts[0]
-	if scheme != "http" {
-		return nil, fmt.Errorf("a URL precisa usar o protocolo HTTP")
+	if scheme != "http" && scheme != "https" {
+		return nil, fmt.Errorf("protocolo não suportado: %s", scheme)
 	}
 
 	res := strings.SplitN(parts[1], "/", 2)
 	host := res[0]
+
+	if scheme == "https" && !strings.Contains(host, ":") {
+		host = host + ":443"
+	} else if scheme == "http" && !strings.Contains(host, ":") {
+		host = host + ":80"
+	}
 
 	path := "/"
 	if len(res) == 2 {
@@ -99,16 +106,35 @@ func parseUrl(raw string) (*Url, error) {
 }
 
 func request(url Url) ([]byte, error) {
-	conn, err := net.Dial("tcp", url.host)
-
+	rawConn, err := net.Dial("tcp", url.host)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+
+	var conn net.Conn = rawConn
+
+	if url.scheme == "https" {
+		serverName := strings.Split(url.host, ":")[0]
+
+		tlsConn := tls.Client(rawConn, &tls.Config{
+			ServerName: serverName,
+		})
+
+		err := tlsConn.Handshake()
+		if err != nil {
+			rawConn.Close()
+			return nil, fmt.Errorf("erro no handshake TLS: %v", err)
+		}
+
+		conn = tlsConn
+	}
+
 	defer conn.Close()
 
+	hostHeader := strings.Split(url.host, ":")[0]
 	request := fmt.Sprintf(
 		"GET %s HTTP/1.0\r\nHost: %s\r\n\r\n",
-		url.path, url.host,
+		url.path, hostHeader,
 	)
 
 	conn.Write([]byte(request))
@@ -117,7 +143,7 @@ func request(url Url) ([]byte, error) {
 
 	statusLine, err := reader.ReadString('\n')
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	parts := strings.SplitN(statusLine, " ", 3)
